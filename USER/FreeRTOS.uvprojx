@@ -385,7 +385,7 @@
             <File>
               <FileName>startup_stm32f40_41xxx.s</FileName>
               <FileType>2</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\CORE\startup_stm32f40_41xxx.s</FilePath>
+              <FilePath>..\CORE\startup_stm32f40_41xxx.s</FilePath>
             </File>
           </Files>
         </Group>
@@ -393,34 +393,39 @@
           <GroupName>FreeRTOS_CORE</GroupName>
           <Files>
             <File>
+              <FileName>stream_buffer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FreeRTOS\stream_buffer.c</FilePath>
+            </File>
+            <File>
               <FileName>croutine.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FreeRTOS_CORE\croutine.c</FilePath>
+              <FilePath>..\FreeRTOS\croutine.c</FilePath>
             </File>
             <File>
               <FileName>event_groups.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FreeRTOS_CORE\event_groups.c</FilePath>
+              <FilePath>..\FreeRTOS\event_groups.c</FilePath>
             </File>
             <File>
               <FileName>list.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FreeRTOS_CORE\list.c</FilePath>
+              <FilePath>..\FreeRTOS\list.c</FilePath>
             </File>
             <File>
               <FileName>queue.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FreeRTOS_CORE\queue.c</FilePath>
+              <FilePath>..\FreeRTOS\queue.c</FilePath>
             </File>
             <File>
               <FileName>tasks.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FreeRTOS_CORE\tasks.c</FilePath>
+              <FilePath>..\FreeRTOS\tasks.c</FilePath>
             </File>
             <File>
               <FileName>timers.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FreeRTOS_CORE\timers.c</FilePath>
+              <FilePath>..\FreeRTOS\timers.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -430,12 +435,12 @@
             <File>
               <FileName>heap_4.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FreeRTOS_PORTABLE\heap_4.c</FilePath>
+              <FilePath>..\FreeRTOS\portable\MemMang\heap_4.c</FilePath>
             </File>
             <File>
               <FileName>port.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FreeRTOS_PORTABLE\port.c</FilePath>
+              <FilePath>..\FreeRTOS\portable\RVDS\ARM_CM4_MPU\port.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -445,42 +450,177 @@
             <File>
               <FileName>misc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FWLIB\misc.c</FilePath>
+              <FilePath>..\FWLIB\src\misc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_adc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_can.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_crc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_cryp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_cryp.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_cryp_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_cryp_aes.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_cryp_des.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_cryp_des.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_cryp_tdes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_cryp_tdes.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_dac.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_dbgmcu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_dbgmcu.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_dcmi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_dcmi.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_dma.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_dma2d.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_dma2d.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_exti.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FWLIB\stm32f4xx_exti.c</FilePath>
+              <FilePath>..\FWLIB\src\stm32f4xx_exti.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_flash_ramfunc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_flash_ramfunc.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_fsmc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FWLIB\stm32f4xx_fsmc.c</FilePath>
+              <FilePath>..\FWLIB\src\stm32f4xx_fsmc.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_gpio.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FWLIB\stm32f4xx_gpio.c</FilePath>
+              <FilePath>..\FWLIB\src\stm32f4xx_gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_hash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_hash.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_hash_md5.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_hash_md5.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_hash_sha1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_hash_sha1.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_i2c.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_iwdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_iwdg.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_ltdc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_ltdc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_pwr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_pwr.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_rcc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FWLIB\stm32f4xx_rcc.c</FilePath>
+              <FilePath>..\FWLIB\src\stm32f4xx_rcc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_rng.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_rng.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_sai.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_sai.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_sdio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_sdio.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_spi.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_syscfg.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FWLIB\stm32f4xx_syscfg.c</FilePath>
+              <FilePath>..\FWLIB\src\stm32f4xx_syscfg.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_tim.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FWLIB\stm32f4xx_tim.c</FilePath>
+              <FilePath>..\FWLIB\src\stm32f4xx_tim.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_usart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\FWLIB\stm32f4xx_usart.c</FilePath>
+              <FilePath>..\FWLIB\src\stm32f4xx_usart.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_wwdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\FWLIB\src\stm32f4xx_wwdg.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -488,29 +628,34 @@
           <GroupName>HARDWARE</GroupName>
           <Files>
             <File>
+              <FileName>exti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\EXTI\exti.c</FilePath>
+            </File>
+            <File>
               <FileName>key.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\HARDWARE\key.c</FilePath>
+              <FilePath>..\HARDWARE\KEY\key.c</FilePath>
             </File>
             <File>
               <FileName>lcd.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\HARDWARE\lcd.c</FilePath>
+              <FilePath>..\HARDWARE\LCD\lcd.c</FilePath>
             </File>
             <File>
               <FileName>led.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\HARDWARE\led.c</FilePath>
+              <FilePath>..\HARDWARE\LED\led.c</FilePath>
             </File>
             <File>
               <FileName>sram.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\HARDWARE\sram.c</FilePath>
+              <FilePath>..\HARDWARE\SRAM\sram.c</FilePath>
             </File>
             <File>
               <FileName>timer.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\HARDWARE\timer.c</FilePath>
+              <FilePath>..\HARDWARE\TIMER\timer.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -520,19 +665,12 @@
             <File>
               <FileName>malloc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\MALLOC\malloc.c</FilePath>
+              <FilePath>..\MALLOC\malloc.c</FilePath>
             </File>
           </Files>
         </Group>
         <Group>
           <GroupName>README</GroupName>
-          <Files>
-            <File>
-              <FileName>readme.txt</FileName>
-              <FileType>5</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\README\readme.txt</FilePath>
-            </File>
-          </Files>
         </Group>
         <Group>
           <GroupName>SYSTEM</GroupName>
@@ -540,17 +678,17 @@
             <File>
               <FileName>delay.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\SYSTEM\delay.c</FilePath>
+              <FilePath>..\SYSTEM\delay\delay.c</FilePath>
             </File>
             <File>
               <FileName>sys.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\SYSTEM\sys.c</FilePath>
+              <FilePath>..\SYSTEM\sys\sys.c</FilePath>
             </File>
             <File>
               <FileName>usart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\SYSTEM\usart.c</FilePath>
+              <FilePath>..\SYSTEM\usart\usart.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -560,17 +698,17 @@
             <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\USER\main.c</FilePath>
+              <FilePath>.\main.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_it.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\USER\stm32f4xx_it.c</FilePath>
+              <FilePath>.\stm32f4xx_it.c</FilePath>
             </File>
             <File>
               <FileName>system_stm32f4xx.c</FileName>
               <FileType>1</FileType>
-              <FilePath>c:\Users\12031\Desktop\RTOS\FreeRTOS_VSCODE\FreeRTOS\FreeRTOS\USER\system_stm32f4xx.c</FilePath>
+              <FilePath>.\system_stm32f4xx.c</FilePath>
             </File>
           </Files>
         </Group>
