@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\FreeRTOS\include;..\FWLIB\inc;..\HARDWARE\EXTI;..\HARDWARE\LCD;..\HARDWARE\KEY;..\HARDWARE\LED;..\HARDWARE\SRAM;..\HARDWARE\TIMER;..\MALLOC;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\FWLIB\src;..\USER;..\FreeRTOS\portable\RVDS\ARM_CM4F</IncludePath>
+              <IncludePath>..\CORE;..\FreeRTOS\include;..\FreeRTOS\portable\RVDS\ARM_CM4_MPU;..\FWLIB\inc;..\HARDWARE\EXTI;..\HARDWARE\KEY;..\HARDWARE\LCD;..\HARDWARE\LED;..\HARDWARE\SRAM;..\HARDWARE\TIMER;..\MALLOC;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -516,16 +516,6 @@
               <FileName>stm32f4xx_exti.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\FWLIB\src\stm32f4xx_exti.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32f4xx_flash.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\FWLIB\src\stm32f4xx_flash.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32f4xx_flash_ramfunc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\FWLIB\src\stm32f4xx_flash_ramfunc.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_fsmc.c</FileName>

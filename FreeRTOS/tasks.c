@@ -2984,7 +2984,7 @@ BaseType_t xSwitchRequired = pdFALSE;
 		processing time (time slice) if preemption is on, and the application
 		writer has not explicitly turned time slicing off. */
 		/*当前正在运行的任务具有相同优先级的任务将共享处理时间（时间片），如果抢占已打开，
-		  /*并且应用程序编写者未明确关闭时间切片。*/
+		  并且应用程序编写者未明确关闭时间切片。*/
 		#if ( ( configUSE_PREEMPTION == 1 ) && ( configUSE_TIME_SLICING == 1 ) )
 		{	
 			/* 有和当前任务优先级相同的任务 则执行时间片轮询调度策略 具体的寻找最高优先级任务的函数在PendSV中 */
