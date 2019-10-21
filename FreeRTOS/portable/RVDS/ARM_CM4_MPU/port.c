@@ -96,8 +96,8 @@ r0p1 port. */
 
 /* Constants required to manipulate the VFP. */
 #define portFPCCR					( ( volatile uint32_t * ) 0xe000ef34 ) /* Floating point context control register. */
-#define portASPEN_AND_LSPEN_BITS	( 0x3UL << 30UL )
-
+#define portASPEN_AND_LSPEN_BITS	( 0x3UL << 30UL )//31位为1，使能异常情况的自动保存恢复
+													//30位为1，使能惰性压栈
 /* Constants required to set up the initial stack. */
 #define portINITIAL_XPSR			( 0x01000000 )
 #define portINITIAL_EXC_RETURN		( 0xfffffffd )
@@ -277,19 +277,19 @@ __asm void prvStartFirstTask( void )
 	nop
 }
 /*-----------------------------------------------------------*/
-
+/*使能FPU，请查看Cortex内核权威指南*/
 __asm void prvEnableVFP( void )
 {
 	PRESERVE8
 
 	/* The FPU enable bits are in the CPACR. */
-	ldr.w r0, =0xE000ED88
-	ldr	r1, [r0]
+	ldr.w r0, =0xE000ED88//CPACR地址
+	ldr	r1, [r0]//读取r0寄存器的数据到r1
 
 	/* Enable CP10 and CP11 coprocessors, then save back. */
-	orr	r1, r1, #( 0xf << 20 )
+	orr	r1, r1, #( 0xf << 20 )//设定为全访问CP10 and CP11位为11 （orr或运算）
 	str r1, [r0]
-	bx	r14
+	bx	r14//r14为链接寄存器LR
 	nop
 }
 /*-----------------------------------------------------------*/
@@ -297,7 +297,20 @@ __asm void prvEnableVFP( void )
 /*
  * See header file for description.
  */
+/**************************************************************************
+* 函数名称： vTaskStartScheduler
+* 函数功能： 在内核中设置任务启动
+* 输入参数： 无
+* 返 回 值： 无
+* 函数说明： 
+处理过程：1.设置PendSV和SYStick优先级
+		  2.初始化滴答定时器，中断周期，中断使能，滴答定时器使能
+	      3.开启FPU
+	      4.惰性压栈	
+          5.开启第一个任务
+****************************************************************************/
 BaseType_t xPortStartScheduler( void )
+/*xPortStartScheduler内核相关初始化***************/
 {
 	/* configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to 0.
 	See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html */
@@ -375,24 +388,25 @@ BaseType_t xPortStartScheduler( void )
 	}
 	#endif /* conifgASSERT_DEFINED */
 
-	/* Make PendSV and SysTick the lowest priority interrupts. */
+	
+	/*1.设置PendSV和SysTick中断优先级为最低************************************/
 	portNVIC_SYSPRI2_REG |= portNVIC_PENDSV_PRI;
 	portNVIC_SYSPRI2_REG |= portNVIC_SYSTICK_PRI;
 
-	/* Start the timer that generates the tick ISR.  Interrupts are disabled
-	here already. */
+	/* 2.初始化滴答定时器，中断周期，中断使能，滴答定时器使能*****************/
+	
 	vPortSetupTimerInterrupt();
 
-	/* Initialise the critical nesting count ready for the first task. */
-	uxCriticalNesting = 0;
+	/* 初始化第一个任务的临界区嵌套. */
+	uxCriticalNesting = 0;//静态全局变量
 
-	/* Ensure the VFP is enabled - it should be anyway. */
+	/* 3.使能FPU*************************************************************/
 	prvEnableVFP();
 
-	/* Lazy save always. */
+	/* 4.惰性压栈************************************************************/
 	*( portFPCCR ) |= portASPEN_AND_LSPEN_BITS;
 
-	/* Start the first task. */
+	/* 5.开启第一个任务************************** */
 	prvStartFirstTask();
 
 	/* Should not get here! */
@@ -709,8 +723,9 @@ void xPortSysTickHandler( void )
 		portNVIC_SYSTICK_CURRENT_VALUE_REG = 0UL;
 
 		/* Configure SysTick to interrupt at the requested rate. */
-		portNVIC_SYSTICK_LOAD_REG = ( configSYSTICK_CLOCK_HZ / configTICK_RATE_HZ ) - 1UL;
+		portNVIC_SYSTICK_LOAD_REG = ( configSYSTICK_CLOCK_HZ / configTICK_RATE_HZ ) - 1UL;//设定重装载值
 		portNVIC_SYSTICK_CTRL_REG = ( portNVIC_SYSTICK_CLK_BIT | portNVIC_SYSTICK_INT_BIT | portNVIC_SYSTICK_ENABLE_BIT );
+		//控制位(选择时钟源(内核还是外部)|中断位使能|使能)
 	}
 
 #endif /* configOVERRIDE_DEFAULT_TICK_CONFIGURATION */

@@ -2077,32 +2077,39 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 	}
 
 #endif /* ( ( INCLUDE_xTaskResumeFromISR == 1 ) && ( INCLUDE_vTaskSuspend == 1 ) ) */
-/*-----------------------------------------------------------*/
-/***********************************************************************
+
+	
+	/*-----------------------------------------------------------*/
+/**************************************************************************
 * 函数名称： vTaskStartScheduler
 * 函数功能： 启动调度器
 * 输入参数： 无
 * 返 回 值： 无
 * 函数说明： 该函数会创建一个空闲任务、初始化一些静态变量，最主要的，它会初始化系统节拍定时器并设置好相应的中断，然后启动第一个任务。
+处理过程：1.创建空闲任务
+		  2.如果使能了软件定时器，创建软件定时器
+	      3.关闭所用中断
+	      4.初始化一些静态全局变量
+	      5.调用xPortStartScheduler，在内核中进行初始化
+	
 ****************************************************************************/
 
+	
 void vTaskStartScheduler( void )
 {
 BaseType_t xReturn;
 
-	/* Add the idle task at the lowest priority. */
-	/* 如果使用静态内存创建任务*/
+	/* 1.在最低优先级位置创建空闲任务. ***********************************************/
 	#if( configSUPPORT_STATIC_ALLOCATION == 1 )
-	{
+	{	/* 如果使用静态分配的RAM来创建空闲任务 */
 		StaticTask_t *pxIdleTaskTCBBuffer = NULL;
 		StackType_t *pxIdleTaskStackBuffer = NULL;
 		uint32_t ulIdleTaskStackSize;
 
-		/* The Idle task is created using user provided RAM - obtain the
-		address of the RAM then create the idle task. */
-		/* 申请内存空间*/
+		/* 使用提供的RAM来创建空闲任务-获取RAM的地址，然后创建空闲任务。 */
+		//申请内存空间
 		vApplicationGetIdleTaskMemory( &pxIdleTaskTCBBuffer, &pxIdleTaskStackBuffer, &ulIdleTaskStackSize );
-		/* 创建空闲任务*/
+		// 创建空闲任务
 		xIdleTaskHandle = xTaskCreateStatic(	prvIdleTask,
 												configIDLE_TASK_NAME,
 												ulIdleTaskStackSize,
@@ -2120,10 +2127,9 @@ BaseType_t xReturn;
 			xReturn = pdFAIL;
 		}
 	}
-	#else //使用动态内存申请空闲任务 优先级为0
+	#else 
 	{
-		/* The Idle task is being created using dynamically allocated RAM. */
-		/* 创建空闲任务 */
+		/* 如果使用动态分配的RAM来创建空闲任务 */
 		xReturn = xTaskCreate(	prvIdleTask,
 								configIDLE_TASK_NAME,
 								configMINIMAL_STACK_SIZE,
@@ -2132,7 +2138,7 @@ BaseType_t xReturn;
 								&xIdleTaskHandle ); /*lint !e961 MISRA exception, justified as it is not a redundant explicit cast to all supported compilers. */
 	}
 	#endif /* configSUPPORT_STATIC_ALLOCATION */
-
+	/*2.如果使能了软件定时器，创建软件定时器*********************************************/
 	#if ( configUSE_TIMERS == 1 )
 	{
 		if( xReturn == pdPASS ) //如果空闲任务创建成功
@@ -2151,53 +2157,46 @@ BaseType_t xReturn;
 		/* freertos_tasks_c_additions_init() should only be called if the user
 		definable macro FREERTOS_TASKS_C_ADDITIONS_INIT() is defined, as that is
 		the only macro called by the function. */
-		#ifdef FREERTOS_TASKS_C_ADDITIONS_INIT
+		#ifdef FREERTOS_TASKS_C_ADDITIONS_INIT//不是很清楚
 		{
 			freertos_tasks_c_additions_init();
 		}
 		#endif
 
-		/* Interrupts are turned off here, to ensure a tick does not occur
-		before or during the call to xPortStartScheduler().  The stacks of
-		the created tasks contain a status word with interrupts switched on
-		so interrupts will automatically get re-enabled when the first task
-		starts to run. */
+
+		/*3.关闭所有中断，以确保xPortStartScheduler()不会被打断****************************************/
+		/*所创建任务的堆栈包含一个状态字，中断被打开，因此当第一个任务开始运行时，中断将自动重新启用。*/
 		portDISABLE_INTERRUPTS(); //关中断 防止在执行此函数期间进中断 
 
 		#if ( configUSE_NEWLIB_REENTRANT == 1 )
 		{
 			/* Switch Newlib's _impure_ptr variable to point to the _reent
 			structure specific to the task that will run first. */
-			_impure_ptr = &( pxCurrentTCB->xNewLib_reent );
+		_impure_ptr = &( pxCurrentTCB->xNewLib_reent );//不是很清楚
 		}
 		#endif /* configUSE_NEWLIB_REENTRANT */
-		//静态变量初始化
-		xNextTaskUnblockTime = portMAX_DELAY;	
-		xSchedulerRunning = pdTRUE;	//调度标志置位
+		/*4.静态变量初始化****************************************************************************/
+		xNextTaskUnblockTime = portMAX_DELAY;//下一个任务的解锁时间	因为开始没有阻塞，所以这里设定成了最大值(时刻)
+		xSchedulerRunning = pdTRUE;	//调度标志置位，说明当前任务调度器正在运行
 		xTickCount = ( TickType_t ) configINITIAL_TICK_COUNT;	//滴答计数初始化
-
-		/* If configGENERATE_RUN_TIME_STATS is defined then the following
-		macro must be defined to configure the timer/counter used to generate
-		the run time counter time base.   NOTE:  If configGENERATE_RUN_TIME_STATS
-		is set to 0 and the following line fails to build then ensure you do not
-		have portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() defined in your
-		FreeRTOSConfig.h file. */
+		
+		/*如果调用了portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()统计任务运行时间。
+		为了提供这个统计时间定时器的时基，我们需要调用portCONFIGURE_TIMER_FOR_RUN_TIME_STATS进行时钟初始化*/
 		portCONFIGURE_TIMER_FOR_RUN_TIME_STATS();
 
-		traceTASK_SWITCHED_IN();
+		traceTASK_SWITCHED_IN();//不清楚
 
 		/* Setting up the timer tick is hardware specific and thus in the
 		portable interface. */
 
-		/* 启动调度器 该函数与硬件相关 在port.c中定义 */
+		/* 5.启动调度器 该函数与内核相关 在port.c中定义 */
 		if( xPortStartScheduler() != pdFALSE )
 		{
-			/* Should not reach here as if the scheduler is running the
-			function will not return. */
+			/* 任务永远不会达这里，随着调度程序运行，该函数永不返回。 */
 		}
 		else
 		{
-			/* Should only reach here if a task calls xTaskEndScheduler(). */
+			/* 由xPortStartScheduler切换到别的任务中去，再也不会回来了. */
 		}
 	}
 	else
@@ -2227,7 +2226,7 @@ void vTaskEndScheduler( void )
 /***********************************************************************
 * 函数名称： vTaskSuspendAll
 * 函数功能： 挂起调度器，上下文切换不再使用
-* 输入参数：	无
+* 输入参数： 无
 * 返 回 值： 无
 * 函数说明： 挂起调度器，但不禁止中断。当调度器挂起时，不会进行上下文切换。调度器挂起后，正在执行的任务会一直继续执行，内核不再调度（意味着当前任务不会被切换出去），直到该任务调用了xTaskResumeAll ()函数。
 			 内核调度器挂起期间，那些可以引起上下文切换的API函数（如vTaskDelayUntil()、xQueueSend()等）决不可使用。
