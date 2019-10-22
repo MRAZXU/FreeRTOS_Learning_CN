@@ -236,43 +236,54 @@ __asm void vPortSVCHandler( void )
 {
 	PRESERVE8
 
-	/* Get the location of the current TCB. */
-	ldr	r3, =pxCurrentTCB
-	ldr r1, [r3]
-	ldr r0, [r1]
+	/*获取当前的TCB的位置. */
+	ldr	r3, =pxCurrentTCB//获取当前TCB的存储地址
+	/*pxCurrentTCB是指向TCB_t的指针，它永远指向正在运行的任务*/
+	ldr r1, [r3]//把R3保存的地址处的值给R1
+	ldr r0, [r1]//把R1保存的地址处的值给R0
+	/*以上目的就是获取要切换到的任务的任务栈顶指针*/
 	/* Pop the core registers. */
-	ldmia r0!, {r4-r11, r14}
-	msr psp, r0
-	isb
-	mov r0, #0
-	msr	basepri, r0
-	bx r14
+	ldmia r0!, {r4-r11, r14}//R4-R11出栈，R14为0xFFFFFFFD，这个值就是初始化任务保存的EXC_RETURN的值（异常返回值）
+	//其他寄存器会手动恢复
+	//由R14决定了是进入进程栈还是主堆栈
+	/*msp:主堆栈for中断，psp:进程栈for任务*/
+	msr psp, r0//进程栈PSP设定为任务堆栈
+	isb//指令同步屏障
+	mov r0, #0//R0=0
+	msr	basepri, r0//开启中断
+	bx r14//跳转指令，R0-R3，R12 LR PC xPSR自动恢复 堆栈使用PSP，然后执行寄存器PC的任务函数
 }
 /*-----------------------------------------------------------*/
 
 __asm void prvStartFirstTask( void )
 {
 	PRESERVE8
+	/*我们一般写程序的位置：SCB->VTOR=FLASH_BASE|VECT_TAB_OFFSET;
+	即VTOR=0x08000000+0x00
+	同时向量表的起始地址值就是MSP(主堆栈指针)的初始值	
+	相关内容见《权威指南》7.5节*/
+	
+	/* 使用中断向量表的向量表偏移寄存器定位堆栈 */
+	ldr r0, =0xE000ED08//这是SCB->VTOR(向量表偏移寄存器)的地址，
 
-	/* Use the NVIC offset register to locate the stack. */
-	ldr r0, =0xE000ED08
-	ldr r0, [r0]
-	ldr r0, [r0]
-	/* Set the msp back to the start of the stack. */
-	msr msp, r0
+	ldr r0, [r0]//取r0所保存的地址处的值赋给r0，也就是VTOR的值，即R0=0x08000000
+	ldr r0, [r0]//读取R0值作为地址的值，即0x08000000地址指向的值，这时R0的值就是MSP的值
+	/* 将MSP设置为堆栈的开始. */
+	msr msp, r0 //把MSP初始值赋值给MSP
 	/* Clear the bit that indicates the FPU is in use in case the FPU was used
 	before the scheduler was started - which would otherwise result in the
 	unnecessary leaving of space in the SVC stack for lazy saving of FPU
-	registers. */
+	registers.以下两段代码不是很清楚 */
 	mov r0, #0
 	msr control, r0
-	/* Globally enable interrupts. */
-	cpsie i
-	cpsie f
-	dsb
-	isb
+	/* 使能中断 */
+	cpsie i//使能中断(清除PRIMASK)
+	cpsie f//使能中断(清除FAULTMASK)
+	dsb//数据同步屏障
+	isb//指令同步屏障见《权威指南》
 	/* Call SVC to start the first task. */
-	svc 0
+	svc 0//启动SVC中断，启动第一个任务，在FreeRTOS中只是用来启动第一个任务，
+	//后面只使用PendSV异常
 	nop
 	nop
 }
@@ -307,7 +318,8 @@ __asm void prvEnableVFP( void )
 		  2.初始化滴答定时器，中断周期，中断使能，滴答定时器使能
 	      3.开启FPU
 	      4.惰性压栈	
-          5.开启第一个任务
+          5.开启第一个任务（SVC=0,引起SVC中断）
+
 ****************************************************************************/
 BaseType_t xPortStartScheduler( void )
 /*xPortStartScheduler内核相关初始化***************/
