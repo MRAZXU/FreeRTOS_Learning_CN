@@ -197,24 +197,25 @@ StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t px
 	of interrupts, and to ensure alignment. */
 	pxTopOfStack--;
 
-	*pxTopOfStack = portINITIAL_XPSR;	/* xPSR */
+	*pxTopOfStack = portINITIAL_XPSR;	/* xPSR(程序状态寄存器) */
 	pxTopOfStack--;
-	*pxTopOfStack = ( ( StackType_t ) pxCode ) & portSTART_ADDRESS_MASK;	/* PC */
+	*pxTopOfStack = ( ( StackType_t ) pxCode ) & portSTART_ADDRESS_MASK;/* PC */
+	//pxCode=任务函数
 	pxTopOfStack--;
 	*pxTopOfStack = ( StackType_t ) prvTaskExitError;	/* LR */
 
-	/* Save code space by skipping register initialisation. */
+	/* 跳过 R12, R3, R2 and R1.不初始化*/
 	pxTopOfStack -= 5;	/* R12, R3, R2 and R1. */
-	*pxTopOfStack = ( StackType_t ) pvParameters;	/* R0 */
+	*pxTopOfStack = ( StackType_t ) pvParameters;	/* 将R0初始化为pvParameters*/
 
 	/* A save method is being used that requires each task to maintain its
 	own exec return value. */
 	pxTopOfStack--;
-	*pxTopOfStack = portINITIAL_EXC_RETURN;
-
+	*pxTopOfStack = portINITIAL_EXC_RETURN;/*用于设置SVC和PendSV中断状态*/
+	/* R11, R10, R9, R8, R7, R6, R5 and R4.不初始化*/
 	pxTopOfStack -= 8;	/* R11, R10, R9, R8, R7, R6, R5 and R4. */
 
-	return pxTopOfStack;
+	return pxTopOfStack;//最后的最后栈顶指针返回到了任务控制块
 }
 /*-----------------------------------------------------------*/
 
