@@ -462,7 +462,17 @@ void vPortExitCritical( void )
 	}
 }
 /*-----------------------------------------------------------*/
-
+/***********************************************************************
+* 函数名称： xPortPendSVHandler() ---FreeRTOS核心之核心
+* 函数功能： 通过PendSV中断异常引发FreeRTOS的任务切换
+* 输入参数： 
+* 返 回 值： 
+* 函数说明： 
+* 处理过程：1.判断是否使用了FPU，如果使用了，S16-S31入栈，r4-r11|r14入栈。
+				EXC_RETURN bit4当处理异常bit4会被CONTROL的FPCA位替代
+				CONTROL寄存器的FPCA位 //1.上下文使用浮点指令   //0.不使用
+            2.r4-r11入栈
+****************************************************************************/
 __asm void xPortPendSVHandler( void )
 {
 	extern uxCriticalNesting;
@@ -471,46 +481,48 @@ __asm void xPortPendSVHandler( void )
 
 	PRESERVE8
 
-	mrs r0, psp
+	mrs r0, psp//读取psp
 	isb
-	/* Get the location of the current TCB. */
+	/* 获取当前任务控制块. */
 	ldr	r3, =pxCurrentTCB
 	ldr	r2, [r3]
+/*1.判断是否使用了FPU************************************************************************/
+	/* 是否使用了FPU  */
+	tst r14, #0x10//tst测试R14和立即数按位与的结果，使得APSR位的N(负)位和Z(0)位更新
+	it eq//it if then指令 用于条件跳转 以上两句用于判断是否开启了FPU 
+	vstmdbeq r0!, {s16-s31}//手动入栈 s0~s15 以及浮点状态寄存器，自动入栈
+	//vstmdbeq 
+	stmdb r0!, {r4-r11, r14}//手动入栈 保存r4~r11的值
 
-	/* Is the task using the FPU context?  If so, push high vfp registers. */
-	tst r14, #0x10
-	it eq
-	vstmdbeq r0!, {s16-s31}
-
-	/* Save the core registers. */
-	stmdb r0!, {r4-r11, r14}
-
-	/* Save the new top of stack into the first member of the TCB. */
-	str r0, [r2]
-
-	stmdb sp!, {r0, r3}
+/*2.将新的栈顶指针保存到任务控制块的第一个字段中**************************************/
+	str r0, [r2]//将R0的值写入到R2保存的指令中去
+/*3.将R3的值临时压栈，防止被改写*************************************/
+	stmdb sp!, {r0, r3}//
+/*4.关闭中断，进入临界区****************************************************/
 	mov r0, #configMAX_SYSCALL_INTERRUPT_PRIORITY
 	msr basepri, r0
 	dsb
 	isb
+/*5.获取下一个任务，pxCurrentTCB设为这个任务***********************************************************/
 	bl vTaskSwitchContext
+/*6.打开中断，退出临界区****************************************************/
 	mov r0, #0
 	msr basepri, r0
+/*7.对刚保存的R3出栈，恢复R3，这个时候R3已经变成了下一个任务的任务控制块*/	
 	ldmia sp!, {r0, r3}
 
-	/* The first item in pxCurrentTCB is the task top of stack. */
+/*8.获取新任务即将运行的任务的任务堆栈栈顶并将栈顶保存到R0中****************************/
 	ldr r1, [r3]
 	ldr r0, [r1]
 
-	/* Pop the core registers. */
+/*9.r4-r11|r14出栈*************************************** */
 	ldmia r0!, {r4-r11, r14}
 
-	/* Is the task using the FPU context?  If so, pop the high vfp registers
-	too. */
+/*10.判断是否使用了FPU，如果有手动出栈*/
 	tst r14, #0x10
 	it eq
 	vldmiaeq r0!, {s16-s31}
-
+/*11.更新psp,任务切换完成，R0-R3 R12 LR PC xPSR通过中断自动恢复********/
 	msr psp, r0
 	isb
 	#ifdef WORKAROUND_PMU_CM001 /* XMC4000 specific errata */
