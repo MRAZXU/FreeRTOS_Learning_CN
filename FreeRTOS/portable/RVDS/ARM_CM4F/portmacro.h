@@ -136,7 +136,14 @@ extern void vPortExitCritical( void );
 
 	/*-----------------------------------------------------------*/
 
+
 	#define portGET_HIGHEST_PRIORITY( uxTopPriority, uxReadyPriorities ) uxTopPriority = ( 31UL - ( uint32_t ) __clz( ( uxReadyPriorities ) ) )
+/*硬件获取最高优先级的方法：
+uxReadyPriorities每一位表示一个优先级 bit15就是优先级15，因此我们可知最多也只有32个优先级不代表处于就绪态的最高优先级
+__clz( ( uxReadyPriorities )求前导零(最高位数，到第一个bit为1的0的个数)
+所以最高优先级=31-__clz()
+*/
+
 
 #endif /* taskRECORD_READY_PRIORITY */
 /*-----------------------------------------------------------*/

@@ -153,7 +153,7 @@ configIDLE_TASK_NAME in FreeRTOSConfig.h. */
 	* 返 回 值： 无
 	* 函数说明： 这其实是一个宏定义 uxTopPriority记录了当前最高优先级
 	****************************************************************************/
-
+/*1.通用方法***************************************************************************/
 	#define taskSELECT_HIGHEST_PRIORITY_TASK()															\
 	{																									\
 	UBaseType_t uxTopPriority = uxTopReadyPriority;														\
@@ -183,22 +183,19 @@ configIDLE_TASK_NAME in FreeRTOSConfig.h. */
 	#define portRESET_READY_PRIORITY( uxPriority, uxTopReadyPriority )
 
 #else /* configUSE_PORT_OPTIMISED_TASK_SELECTION 使用了特殊方法*/
-
-	/* If configUSE_PORT_OPTIMISED_TASK_SELECTION is 1 then task selection is
-	performed in a way that is tailored to the particular microcontroller
-	architecture being used. */
-
+/*2.硬件方法**********************************************************************************/
 	/* A port optimised version is provided.  Call the port defined macros. */
 	#define taskRECORD_READY_PRIORITY( uxPriority )	portRECORD_READY_PRIORITY( uxPriority, uxTopReadyPriority )
-
-	/*-----------------------------------------------------------*/
-
+/**********************************************************************************************
+1.调用portGET_HIGHEST_PRIORITY获取最高优先级任务
+2.通过listGET_OWNER_OF_NEXT_ENTRY从对应列表中查找下一个任务
+***********************************************************************************************/
 	#define taskSELECT_HIGHEST_PRIORITY_TASK()														\
 	{																								\
 	UBaseType_t uxTopPriority;																		\
 																									\
 		/* Find the highest priority list that contains ready tasks. */								\
-		portGET_HIGHEST_PRIORITY( uxTopPriority, uxTopReadyPriority );								\
+		portGET_HIGHEST_PRIORITY( uxTopPriority, uxTopReadyPriority );/*获取最高优先级*/							\
 		configASSERT( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ uxTopPriority ] ) ) > 0 );		\
 		listGET_OWNER_OF_NEXT_ENTRY( pxCurrentTCB, &( pxReadyTasksLists[ uxTopPriority ] ) );		\
 	} /* taskSELECT_HIGHEST_PRIORITY_TASK() */
@@ -3165,12 +3162,16 @@ BaseType_t xSwitchRequired = pdFALSE;
 * 输入参数： 无
 * 返 回 值： 无
 * 函数说明： 
+* 处理过程： 1.判断任务调度器(uxSchedulerSuspended)是否被挂起，如果被挂起xYieldPending = pdTRUE
+				如果没有，查找下一个任务
+			 2.更新当前任务运行时间
+			 3.
 ****************************************************************************/
 
 void vTaskSwitchContext( void )
 {
-	//如果调度器没有被挂起
-	if( uxSchedulerSuspended != ( UBaseType_t ) pdFALSE )
+/*1.如果没有，查找下一个任务*************************************************/	
+	if( uxSchedulerSuspended != ( UBaseType_t ) pdFALSE )//如果调度器没有被挂起
 	{
 		/* The scheduler is currently suspended - do not allow a context
 		switch. */
@@ -3180,11 +3181,13 @@ void vTaskSwitchContext( void )
 	{
 		xYieldPending = pdFALSE;	//不允许上下文切换
 		traceTASK_SWITCHED_OUT();
-
+/*2.更新当前任务运行时间****************************************************/
 		#if ( configGENERATE_RUN_TIME_STATS == 1 )
 		{
-			PRIVILEGED_DATA static uint32_t ulTaskSwitchedInTime = 0UL;	/*< Holds the value of a timer/counter the last time a task was switched in. */
-			PRIVILEGED_DATA static uint32_t ulTotalRunTime = 0UL;		/*< Holds the total amount of execution time as defined by the run time counter clock. */
+			PRIVILEGED_DATA static uint32_t ulTaskSwitchedInTime = 0UL;
+			//保存任务上一次切换时计时器/计数器的值
+			PRIVILEGED_DATA static uint32_t ulTotalRunTime = 0UL;		
+			//保留运行时计数器定义的执行时间总量 
 
 				#ifdef portALT_GET_RUN_TIME_COUNTER_VALUE
 					portALT_GET_RUN_TIME_COUNTER_VALUE( ulTotalRunTime );
@@ -3199,9 +3202,15 @@ void vTaskSwitchContext( void )
 				overflows.  The guard against negative values is to protect
 				against suspect run time stat counter implementations - which
 				are provided by the application, not the kernel. */
+				/*将一直运行现在的当前时间加入到累计时间。任务开始运行的时间存储在（ulTaskSwitchedInTime）
+				请注意，这里没有溢出保护，因此计数值只有在计时器溢出之前才有效。
+				防止负值是为了防止可疑的运行时间统计计数器实现-这些实现是由应用程序提供的，
+				而不是内核提供的。
+				*/
 				if( ulTotalRunTime > ulTaskSwitchedInTime )
 				{
 					pxCurrentTCB->ulRunTimeCounter += ( ulTotalRunTime - ulTaskSwitchedInTime );
+					//当前任务运行时间=当前任务运行时间+(执行时间总量 -上一次切换时计时器/计数器的值)
 				}
 				else
 				{
@@ -3212,7 +3221,7 @@ void vTaskSwitchContext( void )
 		#endif /* configGENERATE_RUN_TIME_STATS */
 
 		/* Check for stack overflow, if configured. */
-		taskCHECK_FOR_STACK_OVERFLOW();
+		taskCHECK_FOR_STACK_OVERFLOW();//检查堆栈溢出
 
 		/* Before the currently running task is switched out, save its errno. */
 		#if( configUSE_POSIX_ERRNO == 1 )
@@ -3223,8 +3232,12 @@ void vTaskSwitchContext( void )
 
 		/* Select a new task to run using either the generic C or port
 		optimised asm code. */
-		taskSELECT_HIGHEST_PRIORITY_TASK(); /*lint !e9079 void * is used as this macro is used with timers and co-routines too.  Alignment is known to be fine as the type of the pointer stored and retrieved is the same. */
-		traceTASK_SWITCHED_IN();
+/*3.这里有两种方法查找  通用法和硬件法**********************************************/
+
+		taskSELECT_HIGHEST_PRIORITY_TASK(); //默认硬件方法
+		/*lint !e9079 void * is used as this macro is used with timers and co-routines too. 
+		Alignment is known to be fine as the type of the pointer stored and retrieved is the same. */
+		traceTASK_SWITCHED_IN();//通用法
 
 		/* After the new task is switched in, update the global errno. */
 		#if( configUSE_POSIX_ERRNO == 1 )
