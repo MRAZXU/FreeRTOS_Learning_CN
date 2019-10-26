@@ -255,13 +255,13 @@ count overflows. */
 /*-----------------------------------------------------------*/
 
 /*
- * Several functions take an TaskHandle_t parameter that can optionally be NULL,
- * where NULL is used to indicate that the handle of the currently executing
- * task should be used in place of the parameter.  This macro simply checks to
- * see if the parameter is NULL and returns a pointer to the appropriate TCB.
+  Several functions take an TaskHandle_t parameter that can optionally be NULL,
+ where NULL is used to indicate that the handle of the currently executing
+  task should be used in place of the parameter.  This macro simply checks to
+  see if the parameter is NULL and returns a pointer to the appropriate TCB.
  */
 #define prvGetTCBFromHandle( pxHandle ) ( ( ( pxHandle ) == NULL ) ? pxCurrentTCB : ( pxHandle ) )
-
+//获取任务控制块：判断pxHandle是否为NULL 如果是pxHandle=pxCurrentTCB，如果不是pxHandle=pxHandle
 /* The item value of the event list item is normally used to hold the priority
 of the task to which it belongs (coded to allow it to be held in reverse
 priority order).  However, it is occasionally borrowed for other purposes.  It
@@ -1200,38 +1200,47 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskDelete == 1 )
-	/***********************************************************************
-	* 函数名称： vTaskDelete
-	* 函数功能： 删除任务
-	* 输入参数： xTaskToDelete[IN] : 需要删除的任务的句柄(ID),如果为NULL，则删除当前任务
-	* 返 回 值： 无
-	* 函数说明： 从RTOS内核管理器中删除一个任务。任务删除后将会从就绪、阻塞、暂停和事件列表中移除。在文件FreeRTOSConfig.h中，必须定义宏INCLUDE_vTaskDelete 为1，本函数才有效。
-      			 被删除的任务，其在任务创建时由内核分配的存储空间，会由空闲任务释放。如果有应用程序调用xTaskDelete()，必须保证空闲任务获取一定的微控制器处理时间。
-      			 任务代码自己分配的内存是不会自动释放的，因此删除任务前，应该将这些内存释放。
-	****************************************************************************/
+/***********************************************************************
+* 函数名称： vTaskDelete
+* 函数功能： 删除任务
+* 输入参数： xTaskToDelete[IN] : 需要删除的任务的句柄(ID),如果为NULL，则删除当前任务
+* 返 回 值： 无
+* 函数说明： 从RTOS内核管理器中删除一个任务。任务删除后将会从就绪、阻塞、暂停和事件列表中移除。
+			 在文件FreeRTOSConfig.h中，必须定义宏INCLUDE_vTaskDelete 为1，本函数才有效。
+      	     被删除的任务，其在任务创建时由内核分配的存储空间，会由空闲任务释放。
+			 如果有应用程序调用xTaskDelete()，必须保证空闲任务获取一定的微控制器处理时间。
+				任务代码自己分配的内存是不会自动释放的，因此删除任务前，应该将这些内存释放。
+
+* 处理过程： 1.根据任务句柄获取任务控制块，如果为NULL删除当前任务
+			 2.将要删除的任务从任务就绪列表中移除任务 如果相应的优先级下只有这一个任务，那么复位相应的优先级位
+			 3.如果任务等待某些事件，那就将存储这个任务的事件列表移除
+			 4.如果删除的任务是自身
+			 4.如果删除的任务不是自身
+			 5.如果删除的是正在运行的任务，那么最后必须重新调度。进行一次任务切换
+****************************************************************************/
 
 	void vTaskDelete( TaskHandle_t xTaskToDelete )
 	{
 	TCB_t *pxTCB;
 
-		taskENTER_CRITICAL();
+		taskENTER_CRITICAL();//临界区代码保护
 		{
-			/* If null is passed in here then it is the calling task that is
-			being deleted. */
-			pxTCB = prvGetTCBFromHandle( xTaskToDelete );
+/*1.根据任务句柄获取任务控制块，如果为NULL删除当前任务****************************/
 
-			/* Remove task from the ready list. */
+
+			pxTCB = prvGetTCBFromHandle( xTaskToDelete );
+/*2.将要删除的任务从任务就绪列表中移除任务 如果相应的优先级下只有这一个任务，那么复位相应的优先级位**************************************************/
+
 			if( uxListRemove( &( pxTCB->xStateListItem ) ) == ( UBaseType_t ) 0 )
 			{
-				taskRESET_READY_PRIORITY( pxTCB->uxPriority );
+				taskRESET_READY_PRIORITY( pxTCB->uxPriority );//复位优先级（仅针对位硬件方法清除优先级）
 			}
 			else
 			{
 				mtCOVERAGE_TEST_MARKER();
 			}
-
-			/* Is the task waiting on an event also? */
-			if( listLIST_ITEM_CONTAINER( &( pxTCB->xEventListItem ) ) != NULL )
+/*3.如果任务等待某些事件，那就将存储这个任务的事件列表移除**************************************************/
+			if( listLIST_ITEM_CONTAINER( &( pxTCB->xEventListItem ) ) != NULL )//判断任务是否位于事件列表
 			{
 				( void ) uxListRemove( &( pxTCB->xEventListItem ) );
 			}
@@ -1244,15 +1253,16 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 			detect that the task lists need re-generating.  This is done before
 			portPRE_TASK_DELETE_HOOK() as in the Windows port that macro will
 			not return. */
-			uxTaskNumber++;
-
-			if( pxTCB == pxCurrentTCB )
+			uxTaskNumber++;//这个注释还有uxTaskNumber不是很明白为啥？调试？
+			
+			
+/*4.如果删除的任务是自身******************************************************************/
+			if( pxTCB == pxCurrentTCB )//如果删除的是当前任务
 			{
-				/* A task is deleting itself.  This cannot complete within the
-				task itself, as a context switch to another task is required.
-				Place the task in the termination list.  The idle task will
-				check the termination list and free up any memory allocated by
-				the scheduler for the TCB and stack of the deleted task. */
+
+				/*当一个任务删除自身，其内存不可能立刻被释放。
+				需要上下文切换到另一个任务即空闲任务，并将当前任务放在终止列表中。
+				空闲任务将检查终止列表，并释放掉已删除任务相关内存*/
 				vListInsertEnd( &xTasksWaitingTermination, &( pxTCB->xStateListItem ) );
 
 				/* Increment the ucTasksDeleted variable so the idle task knows
@@ -1269,11 +1279,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 			}
 			else
 			{
-				--uxCurrentNumberOfTasks;
-				prvDeleteTCB( pxTCB );
+/*4.如果删除的任务不是自身******************************************************************/
+				--uxCurrentNumberOfTasks;//uxCurrentNumberOfTasks-1，表示当前系统任务减一
+				prvDeleteTCB( pxTCB );//直接删除任务控制块
 
-				/* Reset the next expected unblock time in case it referred to
-				the task that has just been deleted. */
+				/* 重置下一个预期的解除阻塞时间，以防它引用刚刚删除的任务。*/
 				prvResetNextTaskUnblockTime();
 			}
 
@@ -1281,8 +1291,8 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 		}
 		taskEXIT_CRITICAL();
 
-		/* Force a reschedule if it is the currently running task that has just
-		been deleted. */
+		
+/*5.如果删除的是正在运行的任务，那么最后必须重新调度。进行一次任务切换********************/
 		if( xSchedulerRunning != pdFALSE )
 		{
 			if( pxTCB == pxCurrentTCB )
@@ -1803,13 +1813,17 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskSuspend == 1 )
-	/***********************************************************************
-	* 函数名称： vTaskSuspend
-	* 函数功能： 任务挂起，被挂起的任务不会再得到处理器的使用权，不管该任务具有什么优先级。
-	* 输入参数： xTaskToSuspend[IN] : 需要挂起的任务的句柄，为NULL表示当前任务
-	* 返 回 值： 无
-	* 函数说明： 调用该函数是不会累计的，即不管调用多少次vTaskSuspend(),只需要调用一次vTaskResume()即可解除该任务的挂起状态
-	****************************************************************************/
+/***********************************************************************
+* 函数名称： vTaskSuspend
+* 函数功能： 任务挂起，被挂起的任务不会再得到处理器的使用权，不管该任务具有什么优先级。
+* 输入参数： xTaskToSuspend[IN] : 需要挂起的任务的句柄，为NULL表示当前任务
+* 返 回 值： 无
+* 函数说明： 调用该函数是不会累计的，即不管调用多少次vTaskSuspend(),只需要调用一次vTaskResume()即可解除该任务的挂起状态
+* 处理过程： 1.根据任务句柄获取任务控制块，如果为NULL挂起当前任务
+			 2.将要挂起的任务从任务就绪列和延迟表中移除任务 
+			 3.如果任务等待某些事件，那就将存储这个任务的事件列表移除
+			 4.
+****************************************************************************/
 
 	void vTaskSuspend( TaskHandle_t xTaskToSuspend )
 	{
@@ -1817,14 +1831,12 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 
 		taskENTER_CRITICAL();
 		{
-			/* If null is passed in here then it is the running task that is
-			being suspended. */
+/* 1.如果在这里函数句柄为NULL，则挂起的是正在运行的任务****************************/
 			pxTCB = prvGetTCBFromHandle( xTaskToSuspend );
 
 			traceTASK_SUSPEND( pxTCB );
 
-			/* Remove task from the ready/delayed list and place in the
-			suspended list. */
+/*2.从就绪/延迟列表中删除任务并放置在挂起列表中***************************/
 			if( uxListRemove( &( pxTCB->xStateListItem ) ) == ( UBaseType_t ) 0 )
 			{
 				taskRESET_READY_PRIORITY( pxTCB->uxPriority );
@@ -1834,16 +1846,17 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 				mtCOVERAGE_TEST_MARKER();
 			}
 
-			/* Is the task waiting on an event also? */
+/*3.如果任务等待某些事件，那就将存储这个任务的事件列表移除***********************/
 			if( listLIST_ITEM_CONTAINER( &( pxTCB->xEventListItem ) ) != NULL )
 			{
 				( void ) uxListRemove( &( pxTCB->xEventListItem ) );
+				//所以一旦挂起 等待事件就无效了
 			}
 			else
 			{
 				mtCOVERAGE_TEST_MARKER();
 			}
-
+/*4.将要挂起的任务添加到挂起任务列表中***************************/
 			vListInsertEnd( &xSuspendedTaskList, &( pxTCB->xStateListItem ) );
 
 			#if( configUSE_TASK_NOTIFICATIONS == 1 )
@@ -1873,7 +1886,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 		{
 			mtCOVERAGE_TEST_MARKER();
 		}
-
+/*5.如果挂起的是自身且任务调度器正常运行，则需要一次任务切换*************/
 		if( pxTCB == pxCurrentTCB )
 		{
 			if( xSchedulerRunning != pdFALSE )
@@ -1888,7 +1901,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 				to by pxCurrentTCB has just been suspended and pxCurrentTCB
 				must be adjusted to point to a different task. */
 				if( listCURRENT_LIST_LENGTH( &xSuspendedTaskList ) == uxCurrentNumberOfTasks ) /*lint !e931 Right has no side effect, just volatile. */
-				{
+				{//安全起见，如果所有任务都被挂起pxCurrentTCB = NULL，保证总有任务在运行
 					/* No other tasks are ready, so set pxCurrentTCB back to
 					NULL so when the next task is created pxCurrentTCB will
 					be set to point to it no matter what its relative priority
@@ -1897,7 +1910,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 				}
 				else
 				{
-					vTaskSwitchContext();
+					vTaskSwitchContext();//查找下一个要运行的任务
 				}
 			}
 		}
@@ -1957,14 +1970,17 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskSuspend == 1 )
-	/***********************************************************************
-	* 函数名称： vTaskResume
-	* 函数功能： 任务恢复
-	* 输入参数： xTaskToResume[IN] : 需要恢复的任务的句柄
-	* 返 回 值： 无
-	* 函数说明： 无
-	****************************************************************************/
-
+/***********************************************************************
+* 函数名称： vTaskResume
+* 函数功能： 任务恢复
+* 输入参数： xTaskToResume[IN] : 需要恢复的任务的句柄
+* 返 回 值： 无
+* 函数说明： 无
+* 处理过程： 1.判断要恢复任务是否为挂起任务
+			 2.将要恢复的任务从挂起列表中移除
+			 3.调用函数prvAddTaskToReadyList添加到就绪列表中
+			 4.如果恢复的任务优先级比当前的高，进行一次任务切换
+****************************************************************************/
 	void vTaskResume( TaskHandle_t xTaskToResume )
 	{
 	TCB_t * const pxTCB = xTaskToResume;
@@ -1978,7 +1994,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 		{
 			taskENTER_CRITICAL();
 			{
-				if( prvTaskIsTaskSuspended( pxTCB ) != pdFALSE )
+				if( prvTaskIsTaskSuspended( pxTCB ) != pdFALSE )//防止调用出错，进一步确认范围
 				{
 					traceTASK_RESUME( pxTCB );
 
