@@ -260,6 +260,9 @@ static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseT
 			 				pdFALSE:不是新创建的队列
 * 返 回 值： 无
 * 函数说明： 这个函数是复位队列中的成员项的
+* 处理过程： 1.初始化其他队列成员变量
+			 2.判断要复位的队列是否为新创建的队列，如果不是的话需要处理相应列表xTasksWaitingToSend
+			 3.如果是新的，那就初始化列表xTasksWaitingToSend和xTasksWaitingToReceive
 ****************************************************************************/
 
 BaseType_t xQueueGenericReset( QueueHandle_t xQueue, BaseType_t xNewQueue )
@@ -381,21 +384,26 @@ Queue_t * const pxQueue = xQueue;
 /*-----------------------------------------------------------*/
 
 #if( configSUPPORT_DYNAMIC_ALLOCATION == 1 )
-	/***********************************************************************
-	* 函数名称： xQueueGenericCreate
-	* 函数功能： 创建队列
-	* 输入参数： uxQueueLength[IN]: 队列项数目
-				 uxItemSize[IN]: 每个队列项大小，单位是字节。队列项通过拷贝入队而不是通过引用入队，因此需要队列项的大小。每个队列项的大小必须相同。
-				 ucQueueType[IN]: 队列类型，信号量也是基于队列实现的，所以这个函数可以创建所有的基于队列实现的任务,可能的类型如下：
-				 queueQUEUE_TYPE_BASE：表示队列
-				 queueQUEUE_TYPE_SET：表示队列集合
-				 queueQUEUE_TYPE_MUTEX：表示互斥量
-				 queueQUEUE_TYPE_COUNTING_SEMAPHORE：表示计数信号量
-				 queueQUEUE_TYPE_BINARY_SEMAPHORE：表示二进制信号量
-			     queueQUEUE_TYPE_RECURSIVE_MUTEX	：表示递归互斥量
-	* 返 回 值： 成功创建队列返回队列句柄，否自返回0。
-	* 函数说明： 这是一个通用的队列创建函数，具体的队列创建参考queue.h中的宏定义
-	****************************************************************************/
+/***********************************************************************
+* 函数名称： xQueueGenericCreate
+* 函数功能： 创建队列
+* 输入参数： uxQueueLength[IN]: 队列项数目
+				uxItemSize[IN]: 每个队列项大小，单位是字节。队列项通过拷贝入队而不是通过引用入队，因此需要队列项的大小。每个队列项的大小必须相同。
+				ucQueueType[IN]: 队列类型，信号量也是基于队列实现的，所以这个函数可以创建所有的基于队列实现的任务,可能的类型如下：
+				queueQUEUE_TYPE_BASE：表示队列
+				queueQUEUE_TYPE_SET：表示队列集合
+				queueQUEUE_TYPE_MUTEX：表示互斥量
+				queueQUEUE_TYPE_COUNTING_SEMAPHORE：表示计数信号量
+				queueQUEUE_TYPE_BINARY_SEMAPHORE：表示二进制信号量
+			    queueQUEUE_TYPE_RECURSIVE_MUTEX	：表示递归互斥量
+* 返 回 值： 成功创建队列返回队列句柄，否自返回0。
+* 函数说明： 这是一个通用的队列创建函数，具体的队列创建参考queue.h中的宏定义
+* 处理过程： 1.判断队列需要多大内存uxQueueLength * uxItemSize
+			 2.为队列申请内存：sizeof( Queue_t ) + xQueueSizeInBytes
+			 3.判断内存是否申请成功，如果成功的话计算出队列存储区的首地址
+			 4.调用prvInitialiseNewQueue()初始化新队列pxNewQueue
+			 5.
+****************************************************************************/
 
 	QueueHandle_t xQueueGenericCreate( const UBaseType_t uxQueueLength, const UBaseType_t uxItemSize, const uint8_t ucQueueType )
 	{
@@ -407,15 +415,14 @@ Queue_t * const pxQueue = xQueue;
 		//如果队列项=0
 		if( uxItemSize == ( UBaseType_t ) 0 )
 		{
-			/* There is not going to be a queue storage area. */
+			/* 这里对应的应该是信号量*/
 			xQueueSizeInBytes = ( size_t ) 0;	//不申请队列存储空间
 		}
 		else	//否则队列项>0
 		{
-			/* Allocate enough space to hold the maximum number of items that
-			can be in the queue at any time. */
+			/*这里对应的是队列的大小*/
 			/* 确保队列获得足够的内存空间 首先要将队列需要的空间转换成字节数 */
-			xQueueSizeInBytes = ( size_t ) ( uxQueueLength * uxItemSize ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
+			xQueueSizeInBytes = ( size_t ) ( uxQueueLength * uxItemSize ); //队列长度*每一条消息大小
 		}
 
 		/* Allocate the queue and storage area.  Justification for MISRA
@@ -427,17 +434,15 @@ Queue_t * const pxQueue = xQueue;
 		are greater than or equal to the pointer to char requirements the cast
 		is safe.  In other cases alignment requirements are not strict (one or
 		two bytes). */
-		/* 向内存申请一个新队列           包括队列结构体空间和队列项占用的空间                   */
-		pxNewQueue = ( Queue_t * ) pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes ); /*lint !e9087 !e9079 see comment above. */
+		/* 向内存申请一个新队列           包括队列结构体空间和队列项占用的空间       */
+		pxNewQueue = ( Queue_t * ) pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes ); 
 		/* 如果申请成功 */
 		if( pxNewQueue != NULL )
 		{
-			/* Jump past the queue structure to find the location of the queue
-			storage area. */
-			/* 找到队列数据区首地址 */
+			/*跳过队列结构体，查找队列存储空间的位置*/		
 			pucQueueStorage = ( uint8_t * ) pxNewQueue;
-			pucQueueStorage += sizeof( Queue_t ); /*lint !e9016 Pointer arithmetic allowed on char types, especially when it assists conveying intent. */
-
+			pucQueueStorage += sizeof( Queue_t ); // 找到队列数据区首地址 
+			//队列结构体存在前面，消息存储区在后面
 			#if( configSUPPORT_STATIC_ALLOCATION == 1 )
 			{
 				/* Queues can be created either statically or dynamically, so
@@ -470,6 +475,10 @@ Queue_t * const pxQueue = xQueue;
 			 pxNewQueue[OUT]:需要被初始化的队列
 * 返 回 值： 无
 * 函数说明： 这是一个队列的初始化函数 主要完成队列内部数据的初始化
+* 处理过程： 1.初始化队列结构体相关成员变量
+			 2.调用xQueueGenericReset（）复位队列
+			 3.
+			 4.
 ****************************************************************************/
 
 static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseType_t uxItemSize, uint8_t *pucQueueStorage, const uint8_t ucQueueType, Queue_t *pxNewQueue )
