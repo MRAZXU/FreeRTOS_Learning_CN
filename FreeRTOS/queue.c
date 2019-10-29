@@ -237,16 +237,18 @@ static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseT
 /*
  * Macro to mark a queue as locked.  Locking a queue prevents an ISR from
  * accessing the queue event lists.
+ *队列上锁
  */
 #define prvLockQueue( pxQueue )								\
 	taskENTER_CRITICAL();									\
 	{														\
 		if( ( pxQueue )->cRxLock == queueUNLOCKED )			\
-		{													\
+			{												\
 			( pxQueue )->cRxLock = queueLOCKED_UNMODIFIED;	\
 		}													\
 		if( ( pxQueue )->cTxLock == queueUNLOCKED )			\
 		{													\
+															\
 			( pxQueue )->cTxLock = queueLOCKED_UNMODIFIED;	\
 		}													\
 	}														\
@@ -820,16 +822,25 @@ static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseT
 
 #endif /* ( ( configUSE_COUNTING_SEMAPHORES == 1 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) ) */
 /*-----------------------------------------------------------*/
-/***********************************************************************
+/*****************************************************************************************
 * 函数名称： xQueueGenericSend
-* 函数功能： 向队列投递队列项
+* 函数功能： 通用入队列函数
 * 输入参数： xQueue[IN]: 队列句柄
 			 pvItemToQueue[IN]: 指针，指向要入队的项目。要保存到队列中的项目字节数在队列创建时就已确定。因此要从指针pvItemToQueue指向的区域拷贝到队列存储区域的字节数，也已确定。
 			 xTicksToWait[IN]: 如果队列满，任务等待队列空闲的最大时间。如果队列满并且xTicksToWait被设置成0，函数立刻返回。时间单位为系统节拍时钟周期，因此宏portTICK_PERIOD_MS可以用来辅助计算真实延时值。如果INCLUDE_vTaskSuspend设置成1，并且指定延时为portMAX_DELAY将引起任务无限阻塞（没有超时）。
 			 xCopyPosition[IN]: 拷贝位置 向队列尾部投递或向队列首部投递
-* 返 回 值： 队列项入队成功返回pdTRUE，否则返回errQUEUE_FULL。
-* 函数说明： 这是一个通用的队列投递函数，具体的函数实现参考queue.h中的宏定义
-****************************************************************************/
+* 返 回 值： 
+* 函数说明： 
+* 处理过程： 1.判断队列是否满，但如果用的覆写就不怎么重要了
+			 2.如果队列未满，调用prvCopyDataToQueue拷贝数据到队列中
+			 3.检查是否有任务因队列为空而进入阻塞，如果有的话解除阻塞此功能通过xTaskRemoveFromEventList完成
+			如果任务调度器没有挂起，从相应事件列表和状态列表移除，并且将任务添加到就绪列表中
+			如果任务挂起，不会从状态列表中移除，而是添加到xPendingReadyList列表中
+			当通过函数xTaskRumeAll恢复任务调度器的时候，添加xPendingReadyList列表中的任务就会被处理
+			 4.如果队列满了，当阻塞时间为0，就返回errQUEUE_FULL
+			 5.如果队列满了，当阻塞时间不为0，那么就把任务放在事件列表中，通过函数vTaskPlaceOnEventList
+			 将任务添加到相应的事件列表和就绪列表中
+****************************************************************************************************/
 
 BaseType_t xQueueGenericSend( QueueHandle_t xQueue, const void * const pvItemToQueue, TickType_t xTicksToWait, const BaseType_t xCopyPosition )
 {
@@ -860,7 +871,8 @@ Queue_t * const pxQueue = xQueue;
 			queue is full. */
 			/* 如果队列还有空间 或者是覆盖式投递 */
 			if( ( pxQueue->uxMessagesWaiting < pxQueue->uxLength ) || ( xCopyPosition == queueOVERWRITE ) )
-			{
+			{	
+				
 				traceQUEUE_SEND( pxQueue );
 
 				#if ( configUSE_QUEUE_SETS == 1 )	//队列集部分 后续注解
@@ -932,6 +944,7 @@ Queue_t * const pxQueue = xQueue;
 					queue then unblock it now. */
 					/* 如果有等待该消息的任务 则唤醒 */
 					if( listLIST_IS_EMPTY( &( pxQueue->xTasksWaitingToReceive ) ) == pdFALSE )
+					
 					{	
 						if( xTaskRemoveFromEventList( &( pxQueue->xTasksWaitingToReceive ) ) != pdFALSE )
 						{
@@ -2231,7 +2244,19 @@ Queue_t * const pxQueue = xQueue;
 
 #endif /* configUSE_MUTEXES */
 /*-----------------------------------------------------------*/
-
+/***********************************************************************
+* 函数名称： prvCopyDataToQueue
+* 函数功能： 拷贝数据到队列
+* 输入参数： pxQueue 
+			 pvItemToQueue
+			 BaseType_t xPosition 
+* 返 回 值： 
+* 函数说明： 
+* 处理过程： 1.
+			 2.
+			 3.
+			 4.
+****************************************************************************/
 static BaseType_t prvCopyDataToQueue( Queue_t * const pxQueue, const void *pvItemToQueue, const BaseType_t xPosition )
 {
 BaseType_t xReturn = pdFALSE;
@@ -2248,6 +2273,7 @@ UBaseType_t uxMessagesWaiting;
 			if( pxQueue->uxQueueType == queueQUEUE_IS_MUTEX )
 			{
 				/* The mutex is no longer being held. */
+				/*信号量*/
 				xReturn = xTaskPriorityDisinherit( pxQueue->u.xSemaphore.xMutexHolder );
 				pxQueue->u.xSemaphore.xMutexHolder = NULL;
 			}
@@ -2259,7 +2285,7 @@ UBaseType_t uxMessagesWaiting;
 		#endif /* configUSE_MUTEXES */
 	}
 	else if( xPosition == queueSEND_TO_BACK )
-	{
+	{	/*后向入队*/
 		( void ) memcpy( ( void * ) pxQueue->pcWriteTo, pvItemToQueue, ( size_t ) pxQueue->uxItemSize ); /*lint !e961 !e418 !e9087 MISRA exception as the casts are only redundant for some ports, plus previous logic ensures a null pointer can only be passed to memcpy() if the copy size is 0.  Cast to void required by function signature and safe as no alignment requirement and copy length specified in bytes. */
 		pxQueue->pcWriteTo += pxQueue->uxItemSize; /*lint !e9016 Pointer arithmetic on char types ok, especially in this use case where it is the clearest way of conveying intent. */
 		if( pxQueue->pcWriteTo >= pxQueue->u.xQueue.pcTail ) /*lint !e946 MISRA exception justified as comparison of pointers is the cleanest solution. */
@@ -2272,7 +2298,8 @@ UBaseType_t uxMessagesWaiting;
 		}
 	}
 	else
-	{
+	{	
+		/*前向入队*/
 		( void ) memcpy( ( void * ) pxQueue->u.xQueue.pcReadFrom, pvItemToQueue, ( size_t ) pxQueue->uxItemSize ); /*lint !e961 !e9087 !e418 MISRA exception as the casts are only redundant for some ports.  Cast to void required by function signature and safe as no alignment requirement and copy length specified in bytes.  Assert checks null pointer only used when length is 0. */
 		pxQueue->u.xQueue.pcReadFrom -= pxQueue->uxItemSize;
 		if( pxQueue->u.xQueue.pcReadFrom < pxQueue->pcHead ) /*lint !e946 MISRA exception justified as comparison of pointers is the cleanest solution. */
@@ -2285,7 +2312,7 @@ UBaseType_t uxMessagesWaiting;
 		}
 
 		if( xPosition == queueOVERWRITE )
-		{
+		{	/*覆写*/
 			if( uxMessagesWaiting > ( UBaseType_t ) 0 )
 			{
 				/* An item is not being added but overwritten, so subtract
@@ -2305,7 +2332,7 @@ UBaseType_t uxMessagesWaiting;
 		}
 	}
 
-	pxQueue->uxMessagesWaiting = uxMessagesWaiting + ( UBaseType_t ) 1;
+	pxQueue->uxMessagesWaiting = uxMessagesWaiting + ( UBaseType_t ) 1;//减了再加 消息数量没变
 
 	return xReturn;
 }
@@ -2328,11 +2355,24 @@ static void prvCopyDataFromQueue( Queue_t * const pxQueue, void * const pvBuffer
 	}
 }
 /*-----------------------------------------------------------*/
-
+/***********************************************************************
+* 函数名称： prvUnlockQueue
+* 函数功能： 队列解锁
+* 输入参数： xQueue[IN]: 队列句柄
+* 返 回 值： 无
+* 函数说明： 无
+* 处理过程： 1.先处理cTxLock
+			 2.判断是否有任务在上锁期间因队列为空导致获取消息失败挂载到列表
+			 3.如果从列表xTasksWaitingToReceive上移除的任务的优先级大于当前正在运行的任务，就需要进行任务切换
+			 4.调用vTaskMissedYield=pdTURE->xYieldPending=pdTURE.函数xTaskIncrementTick会处理
+			 xYieldPending，如果xYieldPending=pdTURE就将xSwichRequired=pdTURE,返回xSwichRequired值
+			 5.处理完cTxLock。将cTxLock赋值为queueUNLOCKED
+			 6.cRxLock与cTxLock过程完全一致
+****************************************************************************/
 static void prvUnlockQueue( Queue_t * const pxQueue )
 {
 	/* THIS FUNCTION MUST BE CALLED WITH THE SCHEDULER SUSPENDED. */
-
+	/*用户无法直接调用*/
 	/* The lock counts contains the number of extra data items placed or
 	removed from the queue while the queue was locked.  When a queue is
 	locked items can be added or removed, but the event lists cannot be
@@ -2393,7 +2433,7 @@ static void prvUnlockQueue( Queue_t * const pxQueue )
 				if( listLIST_IS_EMPTY( &( pxQueue->xTasksWaitingToReceive ) ) == pdFALSE )
 				{
 					if( xTaskRemoveFromEventList( &( pxQueue->xTasksWaitingToReceive ) ) != pdFALSE )
-					{
+					{	
 						/* The task waiting has a higher priority so record that
 						a context switch is required. */
 						vTaskMissedYield();
